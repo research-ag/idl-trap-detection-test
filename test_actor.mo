@@ -34,19 +34,16 @@ persistent actor class TestActor() {
     let futures = Buffer.Buffer<async ({ total_num_changes : Nat64 } or { total_num_changes : Nat64; non_existing_field : Nat })>(arg.callsAmount);
 
     label L for (i in Iter.range(0, arg.callsAmount - 1)) {
-
       let canister_id = if (arg.failuresRate > 0 and (i % arg.failuresRate) == arg.failuresRate - 1) {
         Principal.fromText("2vxsx-fae");
       } else {
-        Principal.fromText("7v7ju-sqaaa-aaaao-a7yvq-cai");
+        Principal.fromText("dtf5z-3aaaa-aaaao-a7wzq-cai");
       };
-
       let management = if (arg.idlErrorsRate > 0 and (i % arg.idlErrorsRate) == arg.idlErrorsRate - 1) {
         (actor "7v7ju-sqaaa-aaaao-a7yvq-cai" : Management);
       } else {
         (actor "aaaaa-aa" : Management);
       };
-
       try {
         futures.add(management.canister_info({ canister_id; num_requested_changes = ?(20 : Nat64) }));
         //register_call cb
@@ -72,7 +69,10 @@ persistent actor class TestActor() {
         failures += 1;
         openCalls -= 1;
         trapDetected := false;
-      } finally if (trapDetected) traps += 1;
+      } finally if (trapDetected) {
+        Debug.print("Trap detected!");
+        traps += 1;
+      };
     };
 
     { openCalls; callSent; successes; failures; traps };
