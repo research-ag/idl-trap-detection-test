@@ -37,7 +37,7 @@ persistent actor class TestActor() {
       let canister_id = if (arg.failuresRate > 0 and (i % arg.failuresRate) == arg.failuresRate - 1) {
         Principal.fromText("2vxsx-fae");
       } else {
-        Principal.fromText("dtf5z-3aaaa-aaaao-a7wzq-cai");
+        Principal.fromText("7v7ju-sqaaa-aaaao-a7yvq-cai");
       };
       let management = if (arg.idlErrorsRate > 0 and (i % arg.idlErrorsRate) == arg.idlErrorsRate - 1) {
         (actor "7v7ju-sqaaa-aaaao-a7yvq-cai" : Management);
