@@ -1,0 +1,20 @@
+{
+  "canisters": {
+    "test": {
+      "main": "./test_actor.mo",
+      "type": "motoko"
+    },
+    "fake_management": {
+      "main": "./fake_management.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": "mops sources"
+    }
+  },
+  "version": 1,
+  "output_env_file": ".env"
+}
