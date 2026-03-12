@@ -5,6 +5,8 @@ import Debug "mo:base/Debug";
 
 persistent actor class TestActor() {
 
+  transient var openCalls : Nat = 0;
+
   type CallStats = {
     openCalls : Nat;
     callSent : Nat;
@@ -22,16 +24,17 @@ persistent actor class TestActor() {
     };
   };
 
+  public query func queryOpenCalls() : async Nat = async openCalls;
+
   public func call(arg : { callsAmount : Nat; idlErrorsRate : Nat; failuresRate : Nat }) : async CallStats {
     // rate 3 means that error is simulated at indexes 2,5,8,11,....
     // rate 5 - 4,9,14,19,....
-    var openCalls : Nat = 0;
     var callSent : Nat = 0;
     var successes : Nat = 0;
     var failures : Nat = 0;
     var traps : Nat = 0;
 
-    let futures = Buffer.Buffer<async ({ total_num_changes : Nat64 } or { total_num_changes : Nat64; non_existing_field : Nat })>(arg.callsAmount);
+    let futures = Buffer.Buffer<async ({ total_num_changes : Nat64 })>(arg.callsAmount);
 
     label L for (i in Iter.range(0, arg.callsAmount - 1)) {
       let canister_id = if (arg.failuresRate > 0 and (i % arg.failuresRate) == arg.failuresRate - 1) {
