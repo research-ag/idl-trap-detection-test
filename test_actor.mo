@@ -1,7 +1,7 @@
-import Buffer "mo:base/Buffer";
-import Iter "mo:base/Iter";
-import Principal "mo:base/Principal";
-import Debug "mo:base/Debug";
+import List "mo:core/List";
+import Principal "mo:core/Principal";
+import Debug "mo:core/Debug";
+import Nat "mo:core/Nat";
 
 persistent actor class TestActor() {
 
@@ -15,14 +15,22 @@ persistent actor class TestActor() {
     traps : Nat;
   };
 
-  type Management = actor {
-    canister_info : query ({
-      canister_id : Principal;
-      num_requested_changes : ?Nat64;
-    }) -> async {
-      total_num_changes : Nat64;
-    };
-  };
+  transient let fakeManagement = (
+    actor "7v7ju-sqaaa-aaaao-a7yvq-cai" : actor {
+      canister_info_correct : query ({
+        canister_id : Principal;
+        num_requested_changes : ?Nat64;
+      }) -> async {
+        total_num_changes : Nat64;
+      };
+      canister_info_incorrect : query ({
+        canister_id : Principal;
+        num_requested_changes : ?Nat64;
+      }) -> async {
+        total_num_changes : Nat64;
+      };
+    }
+  );
 
   public query func queryOpenCalls() : async Nat = async openCalls;
 
@@ -34,21 +42,20 @@ persistent actor class TestActor() {
     var failures : Nat = 0;
     var traps : Nat = 0;
 
-    let futures = Buffer.Buffer<async ({ total_num_changes : Nat64 })>(arg.callsAmount);
+    let futures = List.empty<async ({ total_num_changes : Nat64 })>();
 
-    label L for (i in Iter.range(0, arg.callsAmount - 1)) {
-      let canister_id = if (arg.failuresRate > 0 and (i % arg.failuresRate) == arg.failuresRate - 1) {
+    label L for (i in Nat.range(0, arg.callsAmount)) {
+      let canister_id = if (arg.failuresRate > 0 and (i % arg.failuresRate) == (arg.failuresRate - 1 : Nat)) {
         Principal.fromText("2vxsx-fae");
       } else {
         Principal.fromText("7v7ju-sqaaa-aaaao-a7yvq-cai");
       };
-      let management = if (arg.idlErrorsRate > 0 and (i % arg.idlErrorsRate) == arg.idlErrorsRate - 1) {
-        (actor "7v7ju-sqaaa-aaaao-a7yvq-cai" : Management);
-      } else {
-        (actor "aaaaa-aa" : Management);
-      };
       try {
-        futures.add(management.canister_info({ canister_id; num_requested_changes = ?(20 : Nat64) }));
+        if (arg.idlErrorsRate > 0 and (i % arg.idlErrorsRate) == (arg.idlErrorsRate - 1 : Nat)) {
+          futures.add(fakeManagement.canister_info_incorrect({ canister_id; num_requested_changes = ?(20 : Nat64) }));
+        } else {
+          futures.add(fakeManagement.canister_info_correct({ canister_id; num_requested_changes = ?(20 : Nat64) }));
+        };
         //register_call cb
         openCalls += 1;
         callSent += 1;
@@ -59,8 +66,7 @@ persistent actor class TestActor() {
     };
 
     // now process the responses
-    for (i in Iter.range(0, futures.size() - 1)) {
-      let fut = futures.get(i);
+    for (fut in futures.values()) {
       var trapDetected = true;
       try {
         let resp = await? fut;
